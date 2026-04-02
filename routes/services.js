@@ -3,6 +3,7 @@ const router = express.Router();
 const Service = require('../models/Service');
 const upload = require('../middleware/upload');
 const { uploadToCloudinary } = require('../utils/cloudinary');
+const multer = require('multer');
 
 // GET all services
 router.get('/', async (req, res) => {
@@ -62,7 +63,20 @@ router.get('/:id', async (req, res) => {
 // POST create service
 const { protect } = require('../middleware/authMiddleware');
 
-router.post('/', protect, upload.single('image'), async (req, res) => {
+router.post('/', protect, (req, res, next) => {
+    upload.any()(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ message: `Upload error: ${err.message}`, field: err.field });
+        } else if (err) {
+            return res.status(400).json({ message: `Unknown upload error: ${err.message}` });
+        }
+        
+        if (req.files) {
+            console.log('Received files:', req.files.map(f => ({ fieldname: f.fieldname, size: f.size })));
+        }
+        next();
+    });
+}, async (req, res) => {
     if (req.user.role !== 'provider') {
         return res.status(403).json({ message: 'Only providers can post services' });
     }
@@ -74,16 +88,20 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
     }
 
     try {
-        let finalImageUrl = req.body.imageUrl || ''; // Fallback to provided URL if any
+        const finalPhotos = [];
 
-        // If a file was uploaded, send it to Cloudinary
-        if (req.file) {
-            const result = await uploadToCloudinary(req.file.buffer);
-            finalImageUrl = result.secure_url;
+        // Handle multiple images from Cloudinary
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const result = await uploadToCloudinary(file.buffer);
+                finalPhotos.push(result.secure_url);
+            }
         }
 
-        if (!finalImageUrl) {
-            return res.status(400).json({ message: 'Please upload an image for the service' });
+        const firstPhoto = finalPhotos.length > 0 ? finalPhotos[0] : (req.body.imageUrl || '');
+
+        if (!firstPhoto && finalPhotos.length === 0) {
+            return res.status(400).json({ message: 'Please upload at least one image for the service' });
         }
 
         const service = new Service({
@@ -91,7 +109,8 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
             category,
             price,
             priceUnit: priceUnit || 'hour',
-            imageUrl: finalImageUrl,
+            imageUrl: firstPhoto,
+            photos: finalPhotos,
             aboutService,
             provider: req.user._id,
             providerInfo: {
@@ -102,6 +121,7 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
         });
 
         const savedService = await service.save();
+
         res.status(201).json({ status: 'success', data: savedService });
     } catch (error) {
         res.status(500).json({ message: 'Error creating service', error: error.message });
