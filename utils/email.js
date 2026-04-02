@@ -15,33 +15,33 @@ oauth2Client.setCredentials({
 
 const sendEmail = async (options) => {
   try {
-    // 2. Get the Access Token for this session
-    const accessToken = await oauth2Client.getAccessToken();
-
-    // 3. Create a transporter that uses GMAIL API (Transport Plugin)
+    // 2. Create the transporter using standard OAuth2 type
+    // This allows Nodemailer to handle token refreshes automatically
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         type: 'OAuth2',
-        user: process.env.GOOGLE_USER_EMAIL, // E.g., awaisccw111@gmail.com
+        user: process.env.GOOGLE_USER_EMAIL,
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-        accessToken: accessToken.token,
       },
     });
 
-    // 4. Define the email options
+    // 3. Define the email options
     const mailOptions = {
-      from: `Jobee Platform <${process.env.GOOGLE_USER_EMAIL}>`,
+      from: `"Jobee Platform" <${process.env.GOOGLE_USER_EMAIL}>`,
       to: options.email,
       subject: options.subject,
       text: options.message,
       html: options.html,
     };
 
-    // 5. Send the email!
+    // 4. Send the email!
     await transporter.sendMail(mailOptions);
+
     console.log(`Email successfully sent to ${options.email} via Gmail API.`);
     
   } catch (error) {
