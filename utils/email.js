@@ -14,15 +14,15 @@ oauth2Client.setCredentials({
 });
 
 const sendEmail = async (options) => {
+  // CLEAN AND TRIM THE KEYS (Fixes the common copy-paste space error!)
+  const userEmail = process.env.GOOGLE_USER_EMAIL?.trim();
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
+
   // Debug check for missing variables
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REFRESH_TOKEN || !process.env.GOOGLE_USER_EMAIL) {
-    console.error("CRITICAL ERROR: One or more GOOGLE environment variables are missing in Render settings!");
-    console.log("Status check:", {
-      clientId: !!process.env.GOOGLE_CLIENT_ID,
-      clientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: !!process.env.GOOGLE_REFRESH_TOKEN,
-      userEmail: !!process.env.GOOGLE_USER_EMAIL
-    });
+  if (!clientId || !clientSecret || !refreshToken || !userEmail) {
+    console.error("CRITICAL ERROR: One or more GOOGLE environment variables are missing or empty!");
     throw new Error("Missing Google API credentials");
   }
 
@@ -31,19 +31,19 @@ const sendEmail = async (options) => {
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
-      debug: true, // Enable detailed debug logs
-      logger: true, // Log all SMTP activity
+      debug: true,
+      logger: true, 
       auth: {
         type: 'OAuth2',
-        user: process.env.GOOGLE_USER_EMAIL,
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+        user: userEmail,
+        clientId: clientId,
+        clientSecret: clientSecret,
+        refreshToken: refreshToken,
       },
     });
 
     const mailOptions = {
-      from: `"Jobee Platform" <${process.env.GOOGLE_USER_EMAIL}>`,
+      from: `"Jobee Platform" <${userEmail}>`,
       to: options.email,
       subject: options.subject,
       text: options.message,
@@ -58,6 +58,7 @@ const sendEmail = async (options) => {
     throw error;
   }
 };
+
 
 
 module.exports = sendEmail;
