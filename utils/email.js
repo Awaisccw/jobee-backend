@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 const sendEmail = async (options) => {
   // 1) Create a transporter
@@ -13,7 +14,10 @@ const sendEmail = async (options) => {
     tls: {
       rejectUnauthorized: false,
     },
-    forceIpVersion: 4, // THE TRICK: FORCE IPv4
+    // THE FINAL AGGRESSIVE TRICK: Force DNS to only return IPv4
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
+    },
   });
 
   // 2) Define the email options
