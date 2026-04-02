@@ -75,17 +75,35 @@ router.post('/verify-otp', async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    const record = await Otp.findOne({ email, otp });
+    console.log("\n--- DEBUG: OTP VERIFICATION ---");
+    console.log(`Email provided: ${email}`);
+    console.log(`OTP provided: ${otp} (Type: ${typeof otp})`);
+
+    // Force OTP to string for comparison and find record
+    const otpString = otp.toString();
+    const record = await Otp.findOne({ email, otp: otpString });
     
     if (record) {
+      console.log("MATCH FOUND: Verification Success!");
       res.status(200).json({ status: "success", message: 'OTP verified successfully' });
     } else {
+      // Find by email only to check if the OTP simply didn't match
+      const emailOnly = await Otp.findOne({ email });
+      if (emailOnly) {
+        console.log("FAIL: Email exists but OTP is wrong.");
+        console.log(`Expected: ${emailOnly.otp}, Received: ${otpString}`);
+      } else {
+        console.log("FAIL: No OTP record found for this email (maybe expired?).");
+      }
       res.status(400).json({ status: "fail", message: 'Invalid or expired OTP' });
     }
+    console.log("-------------------------------\n");
   } catch (error) {
+    console.error("Verification error:", error);
     res.status(500).json({ status: "fail", message: 'Server Error', error: error.message });
   }
 });
+
 
 // @route   POST /api/auth/register
 // @desc    Register a new user after OTP
