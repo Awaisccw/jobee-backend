@@ -7,6 +7,8 @@ const upload = require('../middleware/upload');
 const { uploadToCloudinary } = require('../utils/cloudinary');
 const { protect } = require('../middleware/authMiddleware');
 
+const sendEmail = require('../utils/email');
+
 // Generate JWT Helper
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
@@ -31,14 +33,37 @@ router.post('/send-otp', async (req, res) => {
   try {
     const otpCode = generateOtp();
     
-    // In a real app, send email with Nodemailer here.
-    // For now, we will just delete old OTPs and save this one.
+    // Save to DB
     await Otp.deleteMany({ email });
     await Otp.create({ email, otp: otpCode });
 
+    // Send Real Email
+    try {
+      await sendEmail({
+        email: email,
+        subject: 'Jobee - Your Verification Code',
+        message: `Your verification code is ${otpCode}. It will expire in 10 minutes.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #001427; text-align: center;">Welcome to Jobee</h2>
+            <p>Verification Code:</p>
+            <div style="background: #f4f6f6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #001427; border-radius: 5px;">
+              ${otpCode}
+            </div>
+            <p style="margin-top: 20px;">Please enter this code in the app to verify your identity.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="font-size: 12px; color: #888; text-align: center;">If you didn't request this code, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (mailError) {
+      console.error("Email sending failed:", mailError);
+      // We still return success but log error, or handle gracefully
+    }
+
     console.log(`\n============== OTP GENERATED ==============\nEmail: ${email}\nOTP: ${otpCode}\n===========================================\n`);
 
-    res.status(200).json({ status: "success", message: 'OTP sent successfully. Check backend console.' });
+    res.status(200).json({ status: "success", message: 'OTP sent successfully to your email.' });
   } catch (error) {
     res.status(500).json({ status: "fail", message: 'Server Error', error: error.message });
   }

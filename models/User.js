@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
   savedServices: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Service'
+  }],
+  categories: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category'
   }]
 }, { timestamps: true });
 
