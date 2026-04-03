@@ -10,7 +10,10 @@ router.get('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .select('-password')
-      .populate('savedServices');
+      .populate({
+        path: 'savedServices',
+        populate: { path: 'category' }
+      });
     
     if (user) {
       res.json(user);
@@ -47,7 +50,10 @@ router.put('/save-service/:id', protect, async (req, res) => {
     // Return updated list
     const updatedUser = await User.findById(req.user._id)
       .select('-password')
-      .populate('savedServices');
+      .populate({
+        path: 'savedServices',
+        populate: { path: 'category' }
+      });
       
     res.json({ savedServices: updatedUser.savedServices, message: isSaved ? 'Service removed from saved' : 'Service saved' });
   } catch (error) {

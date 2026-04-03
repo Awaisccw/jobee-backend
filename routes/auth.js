@@ -142,7 +142,11 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
       status: (req.body.role === 'provider') ? 'pending' : 'approved'
     });
 
-    if (user) {
+      const populatedUser = await User.findById(user._id).populate({
+        path: 'savedServices',
+        populate: { path: 'category' }
+      });
+
       res.status(201).json({
         status: "success",
         data: {
@@ -152,12 +156,11 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
             name: user.name,
             email: user.email,
             country: user.country,
-            address: user.address,
-            city: user.city,
-            state: user.state,
+            addresses: user.addresses,
             profileImage: user.profileImage,
             role: user.role,
             status: user.status,
+            savedServices: populatedUser.savedServices
           }
         }
       });
@@ -198,6 +201,11 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
       }
 
       const updatedUser = await user.save();
+      const populatedUser = await User.findById(updatedUser._id).populate({
+        path: 'savedServices',
+        populate: { path: 'category' }
+      });
+
       res.status(200).json({
         status: "success",
         data: {
@@ -211,6 +219,7 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
             profileImage: updatedUser.profileImage,
             role: updatedUser.role,
             status: updatedUser.status,
+            savedServices: populatedUser.savedServices
           }
         }
       });
@@ -231,6 +240,11 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      const populatedUser = await User.findById(user._id).populate({
+        path: 'savedServices',
+        populate: { path: 'category' }
+      });
+
       res.status(200).json({
         status: "success",
         data: {
@@ -240,12 +254,11 @@ router.post('/login', async (req, res) => {
             name: user.name,
             email: user.email,
             country: user.country,
-            address: user.address,
-            city: user.city,
-            state: user.state,
+            addresses: user.addresses,
             profileImage: user.profileImage,
             role: user.role,
             status: user.status,
+            savedServices: populatedUser.savedServices
           }
         }
       });
