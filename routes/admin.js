@@ -132,6 +132,9 @@ router.put('/bookings/:id/status', protect, adminOnly, async (req, res) => {
 
     if (status) booking.status = status;
     if (payoutStatus) booking.payoutStatus = payoutStatus;
+    if (req.body.markedCompletedByProvider !== undefined) {
+      booking.markedCompletedByProvider = req.body.markedCompletedByProvider;
+    }
 
     await booking.save();
 
