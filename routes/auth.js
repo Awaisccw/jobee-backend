@@ -142,6 +142,7 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
       status: (req.body.role === 'provider') ? 'pending' : 'approved'
     });
 
+    if (user) {
       const populatedUser = await User.findById(user._id).populate({
         path: 'savedServices',
         populate: { path: 'category' }
