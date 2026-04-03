@@ -20,8 +20,10 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
   address: {
-    type: String,
-    required: true
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String },
+    addressType: { type: String, default: 'Home' }
   },
   totalAmount: {
     type: Number,
