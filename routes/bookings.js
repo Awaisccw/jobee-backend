@@ -54,7 +54,19 @@ router.get('/provider-bookings', protect, async (req, res) => {
 });
 
 // @route   GET /api/bookings/my-bookings
-
+router.get('/my-bookings', protect, async (req, res) => {
+  try {
+    const bookings = await Booking.find({ user: req.user._id })
+      .populate({
+        path: 'service',
+        populate: { path: 'provider', select: 'name email profileImage' }
+      })
+      .sort({ createdAt: -1 });
+    res.json({ status: 'success', data: bookings });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 // @route   PATCH /api/bookings/:id/accept
 // @desc    SP accepts the booking
 router.patch('/:id/accept', protect, async (req, res) => {
