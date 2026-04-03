@@ -131,9 +131,12 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
       password,
       phoneNumber: countryCode || phoneNumber || phone,
       country: countryName || 'Pakistan',
-      address,
-      city,
-      state,
+      addresses: (address || city || state) ? [{
+        addressType: 'Home',
+        address: address,
+        city: city,
+        state: state
+      }] : [],
       profileImage: finalProfileImage,
       role: req.body.role || 'user',
       status: (req.body.role === 'provider') ? 'pending' : 'approved'
@@ -177,9 +180,17 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
       user.email = req.body.email || user.email;
       user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
       user.country = req.body.country || user.country;
-      user.address = req.body.address || user.address;
-      user.city = req.body.city || user.city;
-      user.state = req.body.state || user.state;
+      const { addressType, address, city, state } = req.body;
+      if (addressType) {
+        const addrIndex = user.addresses.findIndex(a => a.addressType === addressType);
+        if (addrIndex > -1) {
+          user.addresses[addrIndex].address = address || user.addresses[addrIndex].address;
+          user.addresses[addrIndex].city = city || user.addresses[addrIndex].city;
+          user.addresses[addrIndex].state = state || user.addresses[addrIndex].state;
+        } else {
+          user.addresses.push({ addressType, address, city, state });
+        }
+      }
 
       if (req.file) {
         const result = await uploadToCloudinary(req.file.buffer);
@@ -196,9 +207,7 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
             name: updatedUser.name,
             email: updatedUser.email,
             country: updatedUser.country,
-            address: updatedUser.address,
-            city: updatedUser.city,
-            state: updatedUser.state,
+            addresses: updatedUser.addresses,
             profileImage: updatedUser.profileImage,
             role: updatedUser.role,
             status: updatedUser.status,

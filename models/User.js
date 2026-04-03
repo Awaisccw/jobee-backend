@@ -18,15 +18,12 @@ const userSchema = new mongoose.Schema({
   phoneNumber: {
     type: String
   },
-  address: {
-    type: String
-  },
-  city: {
-    type: String
-  },
-  state: {
-    type: String
-  },
+  addresses: [{
+    addressType: { type: String, enum: ['Home', 'Work', 'Other'], default: 'Home' },
+    address: String,
+    city: String,
+    state: String
+  }],
   country: {
     type: String
   },
