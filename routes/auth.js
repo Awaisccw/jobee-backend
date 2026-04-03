@@ -108,7 +108,7 @@ router.post('/verify-otp', async (req, res) => {
 // @route   POST /api/auth/register
 // @desc    Register a new user after OTP
 router.post('/register', upload.single('profileImage'), async (req, res) => {
-  const { fullName, email, password, countryCode, countryName, name, phone, phoneNumber } = req.body;
+  const { fullName, email, password, countryCode, countryName, name, phone, phoneNumber, address, city, state } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -131,6 +131,9 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
       password,
       phoneNumber: countryCode || phoneNumber || phone,
       country: countryName || 'Pakistan',
+      address,
+      city,
+      state,
       profileImage: finalProfileImage,
       role: req.body.role || 'user',
       status: (req.body.role === 'provider') ? 'pending' : 'approved'
@@ -146,6 +149,9 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
             name: user.name,
             email: user.email,
             country: user.country,
+            address: user.address,
+            city: user.city,
+            state: user.state,
             profileImage: user.profileImage,
             role: user.role,
             status: user.status,
@@ -171,6 +177,9 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
       user.email = req.body.email || user.email;
       user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
       user.country = req.body.country || user.country;
+      user.address = req.body.address || user.address;
+      user.city = req.body.city || user.city;
+      user.state = req.body.state || user.state;
 
       if (req.file) {
         const result = await uploadToCloudinary(req.file.buffer);
@@ -187,6 +196,9 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
             name: updatedUser.name,
             email: updatedUser.email,
             country: updatedUser.country,
+            address: updatedUser.address,
+            city: updatedUser.city,
+            state: updatedUser.state,
             profileImage: updatedUser.profileImage,
             role: updatedUser.role,
             status: updatedUser.status,
@@ -219,6 +231,9 @@ router.post('/login', async (req, res) => {
             name: user.name,
             email: user.email,
             country: user.country,
+            address: user.address,
+            city: user.city,
+            state: user.state,
             profileImage: user.profileImage,
             role: user.role,
             status: user.status,
