@@ -21,7 +21,7 @@ router.post('/', protect, async (req, res) => {
       time,
       address,
       totalAmount,
-      status: 'Escrowed'
+      status: 'Pending'
     });
 
     const savedBooking = await booking.save();
@@ -55,32 +55,90 @@ router.get('/provider-bookings', protect, async (req, res) => {
 
 // @route   GET /api/bookings/my-bookings
 
-// @route   PUT /api/bookings/:id/mark-done
-// @desc    Mark booking as done by either user or provider
-// @access  Private
-router.put('/:id/mark-done', protect, async (req, res) => {
+// @route   PATCH /api/bookings/:id/accept
+// @desc    SP accepts the booking
+router.patch('/:id/accept', protect, async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers can accept' });
   try {
-    const booking = await Booking.findById(req.id || req.params.id);
-
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    // Check if the requester is the user who booked or the provider of the service
-    // (In a more robust app, we'd check if req.user is the service provider too)
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.status !== 'Pending') return res.status(400).json({ message: 'Only pending bookings can be accepted' });
     
-    if (req.user.role === 'user' && booking.user.toString() === req.user._id.toString()) {
-       booking.status = (booking.status === 'MarkedDoneByProvider') ? 'Completed' : 'MarkedDoneByUser';
-    } else if (req.user.role === 'provider') {
-       booking.status = (booking.status === 'MarkedDoneByUser') ? 'Completed' : 'MarkedDoneByProvider';
-    } else {
-       return res.status(403).json({ message: 'Not authorized to mark this booking' });
-    }
-
+    booking.status = 'Accepted';
     await booking.save();
-    res.status(200).json({ status: 'success', data: booking });
+    res.json({ status: 'success', data: booking });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating booking', error: error.message });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/on-the-way
+router.patch('/:id/on-the-way', protect, async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (booking.status !== 'Accepted') return res.status(400).json({ message: 'Must be accepted first' });
+    booking.status = 'On the way';
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/arrived
+router.patch('/:id/arrived', protect, async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (booking.status !== 'On the way') return res.status(400).json({ message: 'Must be on the way first' });
+    booking.status = 'Arrived';
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/start
+router.patch('/:id/start', protect, async (req, res) => {
+  if (req.user.role !== 'user') return res.status(403).json({ message: 'Only users' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (booking.status !== 'Arrived') return res.status(400).json({ message: 'Provider must arrive first' });
+    booking.status = 'Started';
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/mark-completed
+router.patch('/:id/mark-completed', protect, async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (booking.status !== 'Started') return res.status(400).json({ message: 'Job must be started first' });
+    booking.markedCompletedByProvider = true;
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/confirm-completion
+router.patch('/:id/confirm-completion', protect, async (req, res) => {
+  if (req.user.role !== 'user') return res.status(403).json({ message: 'Only users' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking.markedCompletedByProvider) return res.status(400).json({ message: 'Provider has not marked as completed yet' });
+    booking.status = 'Completed';
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -103,7 +161,7 @@ router.get('/provider-stats', protect, async (req, res) => {
       .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
     
     const jobsDone = bookings.filter(b => b.status === 'Completed').length;
-    const activeJobs = bookings.filter(b => ['Escrowed', 'MarkedDoneByProvider', 'MarkedDoneByUser'].includes(b.status)).length;
+    const activeJobs = bookings.filter(b => !['Completed', 'Cancelled'].includes(b.status)).length;
     
     // Get 3 most recent bookings
     const recentRequests = await Booking.find({ service: { $in: serviceIds } })

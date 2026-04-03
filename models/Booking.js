@@ -29,8 +29,12 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Escrowed', 'Confirmed', 'InProgress', 'MarkedDoneByUser', 'MarkedDoneByProvider', 'Completed', 'PaidOut', 'Cancelled'],
+    enum: ['Pending', 'Accepted', 'On the way', 'Arrived', 'Started', 'Completed', 'Cancelled'],
     default: 'Pending'
+  },
+  markedCompletedByProvider: {
+    type: Boolean,
+    default: false
   },
   paymentReference: {
     type: String // To store payment session or receipt id
