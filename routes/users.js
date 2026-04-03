@@ -25,6 +25,60 @@ router.get('/profile', protect, async (req, res) => {
   }
 });
 
+// @route   PUT /api/users/profile
+// @desc    Update user profile
+// @access  Private
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { name, email, phoneNumber, addresses, country, profileImage } = req.body;
+
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.phoneNumber = phoneNumber || user.phoneNumber;
+    user.addresses = addresses || user.addresses;
+    user.country = country || user.country;
+    user.profileImage = profileImage || user.profileImage;
+
+    const updatedUser = await user.save();
+    
+    // Return full updated user without password
+    const userResponse = await User.findById(updatedUser._id)
+      .select('-password')
+      .populate('savedServices');
+
+    res.json(userResponse);
+  } catch (error) {
+    res.status(500).json({ message: 'Server ERROR updating profile', error: error.message });
+  }
+});
+
+// @route   PUT /api/users/payout-methods
+// @desc    Add or remove payout methods
+// @access  Private
+router.put('/payout-methods', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { payoutMethods, primaryPayoutMethod } = req.body;
+
+    if (payoutMethods) user.payoutMethods = payoutMethods;
+    if (primaryPayoutMethod) user.primaryPayoutMethod = primaryPayoutMethod;
+
+    await user.save();
+    res.json({ message: 'Payout methods updated successfully', data: { payoutMethods: user.payoutMethods, primaryPayoutMethod: user.primaryPayoutMethod } });
+  } catch (error) {
+    res.status(500).json({ message: 'Server ERROR updating payout methods', error: error.message });
+  }
+});
+
 // @route   PUT /api/users/save-service/:id
 // @desc    Save/Bookmark a service or remove if already saved
 // @access  Private

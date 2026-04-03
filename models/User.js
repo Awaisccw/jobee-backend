@@ -47,7 +47,17 @@ const userSchema = new mongoose.Schema({
   categories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
-  }]
+  }],
+  payoutMethods: [{
+    cardId: String,
+    last4: String,
+    cardType: String, // 'Visa', 'Mastercard', etc.
+    holderName: String,
+    expiry: String
+  }],
+  primaryPayoutMethod: {
+    type: String // Matches the cardId
+  }
 }, { timestamps: true });
 
 // Hash the password before saving
