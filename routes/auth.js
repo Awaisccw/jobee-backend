@@ -197,6 +197,15 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
         }
       }
 
+      if (req.body.easypaisaAccountName || req.body.easypaisaAccountNumber || req.body.easypaisaCnic) {
+        user.easypaisaAccount = {
+          accountName: req.body.easypaisaAccountName || user.easypaisaAccount?.accountName,
+          accountNumber: req.body.easypaisaAccountNumber || user.easypaisaAccount?.accountNumber,
+          cnic: req.body.easypaisaCnic || user.easypaisaAccount?.cnic,
+          isVerified: true
+        };
+      }
+
       if (req.file) {
         const result = await uploadToCloudinary(req.file.buffer);
         user.profileImage = result.secure_url;
@@ -222,7 +231,8 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
             phoneNumber: updatedUser.phoneNumber,
             role: updatedUser.role,
             status: updatedUser.status,
-            savedServices: populatedUser.savedServices
+            savedServices: populatedUser.savedServices,
+            easypaisaAccount: updatedUser.easypaisaAccount
           }
         }
       });
@@ -262,7 +272,8 @@ router.post('/login', async (req, res) => {
             phoneNumber: user.phoneNumber,
             role: user.role,
             status: user.status,
-            savedServices: populatedUser.savedServices
+            savedServices: populatedUser.savedServices,
+            easypaisaAccount: user.easypaisaAccount
           }
         }
       });
