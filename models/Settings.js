@@ -6,13 +6,9 @@ const settingsSchema = new mongoose.Schema({
     required: true,
     default: '03001234567'
   },
-  adminEasypaisaStoreId: {
+  adminEasypaisaName: {
     type: String,
-    default: 'STORE_ID' // provided by Easypaisa API
-  },
-  adminEasypaisaApiKey: {
-    type: String,
-    default: 'API_KEY' // provided by Easypaisa API
+    default: 'Admin User'
   },
   platformFeePercentage: {
     type: Number,
