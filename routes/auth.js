@@ -129,7 +129,7 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
       name: fullName || name,
       email,
       password,
-      phoneNumber: countryCode || phoneNumber || phone,
+      phoneNumber: `${countryCode || '+92'} ${phoneNumber || phone || ''}`.trim(),
       country: countryName || 'Pakistan',
       addresses: (address || city || state) ? [{
         addressType: 'Home',
@@ -159,6 +159,7 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
             country: user.country,
             addresses: user.addresses,
             profileImage: user.profileImage,
+            phoneNumber: user.phoneNumber,
             role: user.role,
             status: user.status,
             savedServices: populatedUser.savedServices
@@ -218,6 +219,7 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
             country: updatedUser.country,
             addresses: updatedUser.addresses,
             profileImage: updatedUser.profileImage,
+            phoneNumber: updatedUser.phoneNumber,
             role: updatedUser.role,
             status: updatedUser.status,
             savedServices: populatedUser.savedServices
@@ -257,6 +259,7 @@ router.post('/login', async (req, res) => {
             country: user.country,
             addresses: user.addresses,
             profileImage: user.profileImage,
+            phoneNumber: user.phoneNumber,
             role: user.role,
             status: user.status,
             savedServices: populatedUser.savedServices
