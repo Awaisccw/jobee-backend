@@ -31,8 +31,16 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Accepted', 'On the way', 'Arrived', 'Started', 'Completed', 'Cancelled'],
+    enum: ['Pending', 'Awaiting Payment', 'Accepted', 'On the way', 'Arrived', 'Started', 'Completed', 'Cancelled'],
     default: 'Pending'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['unpaid', 'paid', 'held', 'released', 'refunded'],
+    default: 'unpaid'
+  },
+  easypaisaTransactionId: {
+    type: String
   },
   markedCompletedByProvider: {
     type: Boolean,

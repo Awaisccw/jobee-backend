@@ -154,6 +154,22 @@ router.patch('/:id/confirm-completion', protect, async (req, res) => {
   }
 });
 
+// @route   PATCH /api/bookings/:id/request-payout
+router.patch('/:id/request-payout', protect, async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (booking.status !== 'Completed') return res.status(400).json({ message: 'Job must be marked as Completed first' });
+    if (booking.payoutStatus !== 'None') return res.status(400).json({ message: 'Payout already requested or paid' });
+    
+    booking.payoutStatus = 'Requested';
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get stats for specific provider
 router.get('/provider-stats', protect, async (req, res) => {
   if (req.user.role !== 'provider') {

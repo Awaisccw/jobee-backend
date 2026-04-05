@@ -37,6 +37,7 @@ const categoryRoutes = require('./routes/categories');
 const serviceRoutes = require('./routes/services');
 const bookingRoutes = require('./routes/bookings');
 const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payments');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -45,5 +46,6 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
