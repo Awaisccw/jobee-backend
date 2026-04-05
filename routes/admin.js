@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Booking = require('../models/Booking');
+const Settings = require('../models/Settings');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
 // @route   GET /api/admin/stats
@@ -139,6 +140,43 @@ router.put('/bookings/:id/status', protect, adminOnly, async (req, res) => {
     await booking.save();
 
     res.status(200).json({ status: 'success', message: 'Booking updated', data: booking });
+  } catch (error) {
+    res.status(500).json({ status: 'fail', message: 'Server Error', error: error.message });
+  }
+});
+
+// @route   GET /api/admin/settings
+// @desc    Get global platform settings
+// @access  Private/Admin
+router.get('/settings', protect, adminOnly, async (req, res) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = await Settings.create({});
+    }
+    res.status(200).json({ status: 'success', data: settings });
+  } catch (error) {
+    res.status(500).json({ status: 'fail', message: 'Server Error', error: error.message });
+  }
+});
+
+// @route   PATCH /api/admin/settings
+// @desc    Update global platform settings
+// @access  Private/Admin
+router.patch('/settings', protect, adminOnly, async (req, res) => {
+  try {
+    const { adminEasypaisaNumber, adminEasypaisaName, platformFeePercentage } = req.body;
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = new Settings();
+    }
+    
+    if (adminEasypaisaNumber !== undefined) settings.adminEasypaisaNumber = adminEasypaisaNumber;
+    if (adminEasypaisaName !== undefined) settings.adminEasypaisaName = adminEasypaisaName;
+    if (platformFeePercentage !== undefined) settings.platformFeePercentage = platformFeePercentage;
+
+    await settings.save();
+    res.status(200).json({ status: 'success', data: settings });
   } catch (error) {
     res.status(500).json({ status: 'fail', message: 'Server Error', error: error.message });
   }
