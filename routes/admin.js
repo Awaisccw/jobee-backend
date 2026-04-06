@@ -35,7 +35,7 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
           totalUsers,
           activeProviders,
           totalBookings,
-          totalRevenue: `$${totalRevenue.toLocaleString()}`,
+          totalRevenue: `Rs. ${totalRevenue.toLocaleString()}`,
           pendingApprovals
         },
         recentBookings
@@ -165,7 +165,7 @@ router.get('/settings', protect, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.patch('/settings', protect, adminOnly, async (req, res) => {
   try {
-    const { adminEasypaisaNumber, adminEasypaisaName, platformFeePercentage } = req.body;
+    const { adminEasypaisaNumber, adminEasypaisaName, platformFeePercentage, easypayStoreId, easypayHashKey } = req.body;
     let settings = await Settings.findOne();
     if (!settings) {
       settings = new Settings();
@@ -174,6 +174,8 @@ router.patch('/settings', protect, adminOnly, async (req, res) => {
     if (adminEasypaisaNumber !== undefined) settings.adminEasypaisaNumber = adminEasypaisaNumber;
     if (adminEasypaisaName !== undefined) settings.adminEasypaisaName = adminEasypaisaName;
     if (platformFeePercentage !== undefined) settings.platformFeePercentage = platformFeePercentage;
+    if (easypayStoreId !== undefined) settings.easypayStoreId = easypayStoreId;
+    if (easypayHashKey !== undefined) settings.easypayHashKey = easypayHashKey;
 
     await settings.save();
     res.status(200).json({ status: 'success', data: settings });

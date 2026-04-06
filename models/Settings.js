@@ -13,6 +13,14 @@ const settingsSchema = new mongoose.Schema({
   platformFeePercentage: {
     type: Number,
     default: 10
+  },
+  easypayStoreId: {
+    type: String,
+    default: ''
+  },
+  easypayHashKey: {
+    type: String,
+    default: ''
   }
 }, { timestamps: true });
 
