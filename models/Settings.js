@@ -21,6 +21,10 @@ const settingsSchema = new mongoose.Schema({
   easypayHashKey: {
     type: String,
     default: ''
+  },
+  sliderImages: {
+    type: [String],
+    default: []
   }
 }, { timestamps: true });
 

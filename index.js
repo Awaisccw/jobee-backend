@@ -29,6 +29,17 @@ app.get('/', (req, res) => {
   res.send('Welcome to Awais App Backend API!');
 });
 
+// Public route for settings
+app.get('/api/settings', async (req, res) => {
+  try {
+    const Settings = require('./models/Settings');
+    const settings = await Settings.getSettings();
+    res.json({ status: "success", data: settings });
+  } catch (err) {
+    res.status(500).json({ status: "fail", message: "Error fetching settings" });
+  }
+});
+
 // Import and use routes here as you build them
 // Import routes
 const authRoutes = require('./routes/auth');

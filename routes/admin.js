@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Booking = require('../models/Booking');
 const Settings = require('../models/Settings');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 // @route   GET /api/admin/stats
 // @desc    Get dashboard statistics
@@ -176,6 +178,35 @@ router.patch('/settings', protect, adminOnly, async (req, res) => {
     if (platformFeePercentage !== undefined) settings.platformFeePercentage = platformFeePercentage;
     if (easypayStoreId !== undefined) settings.easypayStoreId = easypayStoreId;
     if (easypayHashKey !== undefined) settings.easypayHashKey = easypayHashKey;
+
+    await settings.save();
+    res.status(200).json({ status: 'success', data: settings });
+  } catch (error) {
+    res.status(500).json({ status: 'fail', message: 'Server Error', error: error.message });
+  }
+});
+
+// @route   POST /api/admin/settings/slider
+// @desc    Upload up to 4 slider images
+// @access  Private/Admin
+router.post('/settings/slider', protect, adminOnly, upload.array('sliderImages', 4), async (req, res) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = new Settings();
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ status: 'fail', message: 'No images uploaded' });
+    }
+
+    const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
+    const results = await Promise.all(uploadPromises);
+    const imageUrls = results.map(result => result.secure_url);
+
+    // Replace or append? User said "Admin can upload 4 slider pictures that will be showed in the slider"
+    // Usually, this means setting the current pool of images.
+    settings.sliderImages = imageUrls;
 
     await settings.save();
     res.status(200).json({ status: 'success', data: settings });
