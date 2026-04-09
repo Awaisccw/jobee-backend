@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 // @route   GET /api/users/profile
 // @desc    Get logged in user profile
@@ -28,32 +30,45 @@ router.get('/profile', protect, async (req, res) => {
 // @route   PUT /api/users/profile
 // @desc    Update user profile
 // @access  Private
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, upload.single('profileImage'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ status: "fail", message: 'User not found' });
     }
 
-    const { name, email, phoneNumber, addresses, country, profileImage } = req.body;
+    const { name, email, phoneNumber, addresses, country } = req.body;
 
     user.name = name || user.name;
     user.email = email || user.email;
     user.phoneNumber = phoneNumber || user.phoneNumber;
-    user.addresses = addresses || user.addresses;
+    if (addresses) user.addresses = typeof addresses === 'string' ? JSON.parse(addresses) : addresses;
     user.country = country || user.country;
-    user.profileImage = profileImage || user.profileImage;
+
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer);
+      user.profileImage = result.secure_url;
+    } else if (req.body.profileImage) {
+      user.profileImage = req.body.profileImage;
+    }
 
     const updatedUser = await user.save();
     
-    // Return full updated user without password
     const userResponse = await User.findById(updatedUser._id)
       .select('-password')
-      .populate('savedServices');
+      .populate({
+        path: 'savedServices',
+        populate: { path: 'category' }
+      });
 
-    res.json(userResponse);
+    res.json({
+      status: "success",
+      data: {
+        doc: userResponse
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server ERROR updating profile', error: error.message });
+    res.status(500).json({ status: "fail", message: 'Server ERROR updating profile', error: error.message });
   }
 });
 
