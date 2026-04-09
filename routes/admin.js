@@ -204,10 +204,36 @@ router.post('/settings/slider', protect, adminOnly, upload.array('sliderImages',
     const results = await Promise.all(uploadPromises);
     const imageUrls = results.map(result => result.secure_url);
 
-    // Replace or append? User said "Admin can upload 4 slider pictures that will be showed in the slider"
-    // Usually, this means setting the current pool of images.
-    settings.sliderImages = imageUrls;
+    // Append new images and limit to total 4
+    const currentImages = settings.sliderImages || [];
+    const combinedImages = [...currentImages, ...imageUrls].slice(0, 4);
+    settings.sliderImages = combinedImages;
 
+    await settings.save();
+    res.status(200).json({ status: 'success', data: settings });
+  } catch (error) {
+    res.status(500).json({ status: 'fail', message: 'Server Error', error: error.message });
+  }
+});
+
+// @route   DELETE /api/admin/settings/slider/:index
+// @desc    Delete a specific slider image by index
+// @access  Private/Admin
+router.delete('/settings/slider/:index', protect, adminOnly, async (req, res) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings || !settings.sliderImages) {
+      return res.status(404).json({ status: 'fail', message: 'Settings or images not found' });
+    }
+
+    const index = parseInt(req.params.index);
+    if (isNaN(index) || index < 0 || index >= settings.sliderImages.length) {
+      return res.status(400).json({ status: 'fail', message: 'Invalid index' });
+    }
+
+    // Remove the image at index
+    settings.sliderImages.splice(index, 1);
+    
     await settings.save();
     res.status(200).json({ status: 'success', data: settings });
   } catch (error) {
