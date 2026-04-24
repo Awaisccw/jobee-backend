@@ -9,13 +9,18 @@ const multer = require('multer');
 router.get('/', async (req, res) => {
     try {
         // We'll populate the category and provider so the frontend gets full info
-        const services = await Service.find().populate('category').populate('provider', 'name profileImage email phone');
+        const services = await Service.find().populate('category').populate('provider', 'name profileImage email phone averageRating numReviews');
         
         // Transform the response to match the frontend expected 'avatarUrl'
         const transformedServices = services.map(service => {
             const s = service.toObject();
-            if (s.provider && s.provider.profileImage) {
-                s.provider.avatarUrl = s.provider.profileImage;
+            if (s.provider) {
+                if (s.provider.profileImage) {
+                    s.provider.avatarUrl = s.provider.profileImage;
+                }
+                // Overwrite service rating with real provider average
+                s.rating = s.provider.averageRating || 0;
+                s.reviewsCount = s.provider.numReviews || 0;
             }
             return s;
         });
@@ -31,12 +36,17 @@ router.get('/category/:categoryId', async (req, res) => {
     try {
         const services = await Service.find({ category: req.params.categoryId })
             .populate('category')
-            .populate('provider', 'name profileImage email phone');
+            .populate('provider', 'name profileImage email phone averageRating numReviews');
             
         const transformedServices = services.map(service => {
             const s = service.toObject();
-            if (s.provider && s.provider.profileImage) {
-                s.provider.avatarUrl = s.provider.profileImage;
+            if (s.provider) {
+                if (s.provider.profileImage) {
+                    s.provider.avatarUrl = s.provider.profileImage;
+                }
+                // Overwrite service rating with real provider average
+                s.rating = s.provider.averageRating || 0;
+                s.reviewsCount = s.provider.numReviews || 0;
             }
             return s;
         });

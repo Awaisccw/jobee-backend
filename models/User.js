@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema({
     accountNumber: String,
     cnic: String,
     isVerified: { type: Boolean, default: false }
+  },
+  averageRating: {
+    type: Number,
+    default: 0
+  },
+  numReviews: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

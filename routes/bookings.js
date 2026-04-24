@@ -235,4 +235,41 @@ router.get('/provider-stats', protect, async (req, res) => {
   }
 });
 
+// @route   PATCH /api/bookings/:id/rate
+// @desc    User rates the completed service
+router.patch('/:id/rate', protect, async (req, res) => {
+  if (req.user.role !== 'user') return res.status(403).json({ message: 'Only users can rate services' });
+  const { rating, comment } = req.body;
+  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: 'Please provide a valid rating between 1 and 5' });
+
+  try {
+    const booking = await Booking.findById(req.params.id).populate('service');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.status !== 'Completed') return res.status(400).json({ message: 'Only completed services can be rated' });
+    if (booking.userFeedback && booking.userFeedback.rating) return res.status(400).json({ message: 'You have already rated this service' });
+
+    // Update booking feedback
+    booking.userFeedback = { rating, comment: comment || "" };
+    await booking.save();
+
+    // Update Provider average rating
+    const Service = require('../models/Service');
+    const User = require('../models/User');
+    const service = await Service.findById(booking.service);
+    if (service) {
+      const provider = await User.findById(service.provider);
+      if (provider) {
+        const totalRatingPoints = (provider.averageRating || 0) * (provider.numReviews || 0);
+        provider.numReviews = (provider.numReviews || 0) + 1;
+        provider.averageRating = (totalRatingPoints + rating) / provider.numReviews;
+        await provider.save();
+      }
+    }
+
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
