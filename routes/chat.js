@@ -40,11 +40,42 @@ router.get('/conversations', protect, async (req, res) => {
     .populate('participants', 'name profileImage email role')
     .populate({
       path: 'lastMessage',
-      select: 'content sender createdAt'
+      select: 'content sender createdAt isRead'
     })
     .sort({ updatedAt: -1 });
 
-    res.status(200).json(conversations);
+    // For each conversation, count unread messages where the current user is NOT the sender
+    const conversationsWithUnread = await Promise.all(conversations.map(async (conv) => {
+      const unreadCount = await Message.countDocuments({
+        conversationId: conv._id,
+        sender: { $ne: req.user._id },
+        isRead: false
+      });
+      
+      const convObj = conv.toObject();
+      convObj.unreadCount = unreadCount;
+      return convObj;
+    }));
+
+    res.status(200).json(conversationsWithUnread);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   POST /api/chat/messages/read/:conversationId
+// @desc    Mark all messages in a conversation as read
+router.post('/messages/read/:conversationId', protect, async (req, res) => {
+  try {
+    await Message.updateMany(
+      {
+        conversationId: req.params.conversationId,
+        sender: { $ne: req.user._id },
+        isRead: false
+      },
+      { isRead: true }
+    );
+    res.status(200).json({ message: 'Messages marked as read' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
