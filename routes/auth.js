@@ -247,12 +247,19 @@ router.post('/update-profile', protect, upload.single('profileImage'), async (re
 // @route   POST /api/auth/login
 // @desc    Auth user & get token (Login)
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   try {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      // Role validation if requested
+      if (role && user.role !== role) {
+        return res.status(401).json({ 
+          status: "fail", 
+          message: `Access denied. This account is registered as a ${user.role}, not a ${role}.` 
+        });
+      }
       const populatedUser = await User.findById(user._id).populate({
         path: 'savedServices',
         populate: { path: 'category' }
