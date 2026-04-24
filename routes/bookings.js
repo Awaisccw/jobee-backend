@@ -103,8 +103,10 @@ router.patch('/:id/arrived', protect, async (req, res) => {
   if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers' });
   try {
     const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
     if (booking.status !== 'On the way') return res.status(400).json({ message: 'Must be on the way first' });
     booking.status = 'Arrived';
+    booking.userConfirmedArrival = false; // Reset just in case
     await booking.save();
     res.json({ status: 'success', data: booking });
   } catch (error) {
@@ -112,13 +114,34 @@ router.patch('/:id/arrived', protect, async (req, res) => {
   }
 });
 
-// @route   PATCH /api/bookings/:id/start
-router.patch('/:id/start', protect, async (req, res) => {
-  if (req.user.role !== 'user') return res.status(403).json({ message: 'Only users' });
+// @route   PATCH /api/bookings/:id/confirm-arrival
+// @desc    User confirms that the provider has arrived
+router.patch('/:id/confirm-arrival', protect, async (req, res) => {
+  if (req.user.role !== 'user') return res.status(403).json({ message: 'Only users can confirm arrival' });
   try {
     const booking = await Booking.findById(req.params.id);
-    if (booking.status !== 'Arrived') return res.status(400).json({ message: 'Provider must arrive first' });
-    booking.status = 'Started';
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.status !== 'Arrived') return res.status(400).json({ message: 'Provider has not marked as arrived yet' });
+    
+    booking.userConfirmedArrival = true;
+    await booking.save();
+    res.json({ status: 'success', data: booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/start-work
+// @desc    Provider starts working (only after user confirms arrival)
+router.patch('/:id/start-work', protect, async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers can start work' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.status !== 'Arrived') return res.status(400).json({ message: 'Status must be Arrived' });
+    if (!booking.userConfirmedArrival) return res.status(400).json({ message: 'Wait for user to confirm your arrival' });
+    
+    booking.status = 'Working';
     await booking.save();
     res.json({ status: 'success', data: booking });
   } catch (error) {
@@ -131,7 +154,9 @@ router.patch('/:id/mark-completed', protect, async (req, res) => {
   if (req.user.role !== 'provider') return res.status(403).json({ message: 'Only providers' });
   try {
     const booking = await Booking.findById(req.params.id);
-    if (booking.status !== 'Started') return res.status(400).json({ message: 'Job must be started first' });
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.status !== 'Working') return res.status(400).json({ message: 'Job must be in Working status first' });
+    
     booking.markedCompletedByProvider = true;
     await booking.save();
     res.json({ status: 'success', data: booking });
@@ -145,7 +170,9 @@ router.patch('/:id/confirm-completion', protect, async (req, res) => {
   if (req.user.role !== 'user') return res.status(403).json({ message: 'Only users' });
   try {
     const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
     if (!booking.markedCompletedByProvider) return res.status(400).json({ message: 'Provider has not marked as completed yet' });
+    
     booking.status = 'Completed';
     await booking.save();
     res.json({ status: 'success', data: booking });

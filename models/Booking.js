@@ -31,7 +31,7 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Awaiting Payment', 'Accepted', 'On the way', 'Arrived', 'Started', 'Completed', 'Cancelled'],
+    enum: ['Pending', 'Awaiting Payment', 'Accepted', 'On the way', 'Arrived', 'Working', 'Completed', 'Cancelled'],
     default: 'Pending'
   },
   paymentStatus: {
@@ -43,6 +43,10 @@ const bookingSchema = new mongoose.Schema({
     type: String
   },
   markedCompletedByProvider: {
+    type: Boolean,
+    default: false
+  },
+  userConfirmedArrival: {
     type: Boolean,
     default: false
   },
