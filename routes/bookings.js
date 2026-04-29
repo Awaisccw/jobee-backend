@@ -43,7 +43,10 @@ router.get('/provider-bookings', protect, async (req, res) => {
     const serviceIds = myServices.map(s => s._id);
 
     const bookings = await Booking.find({ service: { $in: serviceIds } })
-      .populate('service')
+      .populate({
+        path: 'service',
+        populate: { path: 'category', select: 'name' }
+      })
       .populate('user', 'name email phone avatarUrl')
       .sort({ createdAt: -1 });
 
@@ -59,7 +62,10 @@ router.get('/my-bookings', protect, async (req, res) => {
     const bookings = await Booking.find({ user: req.user._id })
       .populate({
         path: 'service',
-        populate: { path: 'provider', select: 'name email profileImage' }
+        populate: [
+          { path: 'provider', select: 'name email profileImage' },
+          { path: 'category', select: 'name' }
+        ]
       })
       .sort({ createdAt: -1 });
     res.json({ status: 'success', data: bookings });
