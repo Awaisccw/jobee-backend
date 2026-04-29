@@ -51,7 +51,7 @@ exports.paymentCallback = async (req, res) => {
     if (!booking) return res.status(404).send('Booking not found');
 
     if (status === 'SUCCESS') {
-      booking.status = 'Accepted';
+      booking.status = 'Pending';
       booking.paymentStatus = 'held';
       booking.easypaisaTransactionId = transactionId;
       await booking.save();
