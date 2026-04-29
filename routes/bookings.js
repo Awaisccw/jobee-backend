@@ -235,6 +235,8 @@ router.get('/provider-stats', protect, async (req, res) => {
       totalEarnings,
       jobsDone,
       activeJobs,
+      averageRating: req.user.averageRating || 0,
+      numReviews: req.user.numReviews || 0,
       recentRequests
     });
   } catch (error) {
