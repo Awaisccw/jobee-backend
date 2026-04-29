@@ -221,6 +221,7 @@ router.get('/provider-stats', protect, async (req, res) => {
     // Get 3 most recent bookings
     const recentRequests = await Booking.find({ service: { $in: serviceIds } })
       .populate('service', 'title')
+      .populate('user', 'name email profileImage')
       .sort({ createdAt: -1 })
       .limit(3);
 
