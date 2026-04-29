@@ -31,6 +31,12 @@ router.post('/send-otp', async (req, res) => {
   }
 
   try {
+    // Check if user already exists (for registration flow)
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ status: "fail", message: 'User already exists with this email' });
+    }
+
     const otpCode = generateOtp();
     
     // Save to DB
@@ -58,7 +64,6 @@ router.post('/send-otp', async (req, res) => {
       });
     } catch (mailError) {
       console.error("Email sending failed:", mailError);
-      // We still return success but log error, or handle gracefully
     }
 
     console.log(`\n============== OTP GENERATED ==============\nEmail: ${email}\nOTP: ${otpCode}\n===========================================\n`);
@@ -289,6 +294,110 @@ router.post('/login', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ status: "fail", message: 'Server ERROR', error: error.message });
+  }
+});
+
+// @route   POST /api/auth/forgot-password
+// @desc    Check if user exists and send OTP for password reset
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ status: "fail", message: 'Please provide an email address' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ status: "fail", message: 'No account found with this email' });
+    }
+
+    // Reuse OTP generation logic
+    const otpCode = generateOtp();
+    await Otp.deleteMany({ email });
+    await Otp.create({ email, otp: otpCode });
+
+    // Send Email
+    try {
+      await sendEmail({
+        email: email,
+        subject: 'Jobee - Password Reset Code',
+        message: `Your password reset code is ${otpCode}.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #001427; text-align: center;">Password Reset</h2>
+            <p>You requested a password reset. Use the code below to proceed:</p>
+            <div style="background: #f4f6f6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #001427; border-radius: 5px;">
+              ${otpCode}
+            </div>
+          </div>
+        `,
+      });
+    } catch (mailError) {
+      console.error("Email sending failed:", mailError);
+    }
+
+    console.log(`\n============== FORGOT PASSWORD OTP ==============\nEmail: ${email}\nOTP: ${otpCode}\n================================================\n`);
+
+    res.status(200).json({ status: "success", message: 'Reset code sent to your email.' });
+  } catch (error) {
+    res.status(500).json({ status: "fail", message: 'Server Error', error: error.message });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Verify OTP and reset password
+router.post('/reset-password', async (req, res) => {
+  const { email, otp, password } = req.body;
+
+  if (!email || !otp || !password) {
+    return res.status(400).json({ status: "fail", message: 'Please provide email, otp and new password' });
+  }
+
+  try {
+    const record = await Otp.findOne({ email, otp: otp.toString() });
+    if (!record) {
+      return res.status(400).json({ status: "fail", message: 'Invalid or expired OTP' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ status: "fail", message: 'User not found' });
+    }
+
+    user.password = password;
+    await user.save();
+
+    // Delete OTP after use
+    await Otp.deleteMany({ email });
+
+    res.status(200).json({ status: "success", message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(500).json({ status: "fail", message: 'Server Error', error: error.message });
+  }
+});
+
+// @route   POST /api/auth/update-password
+// @desc    Update password for logged in user
+router.post('/update-password', protect, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ status: "fail", message: 'User not found' });
+    }
+
+    if (!(await user.matchPassword(currentPassword))) {
+      return res.status(401).json({ status: "fail", message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ status: "success", message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ status: "fail", message: 'Server Error', error: error.message });
   }
 });
 
